@@ -1,0 +1,10 @@
+{
+	"id": "whisper-local",
+	"name": "Döschl Whispert Local",
+	"version": "0.1.0",
+	"minAppVersion": "1.4.5",
+	"description": "Local speech-to-text using whisper.cpp. No cloud, no API keys, no costs. — Author: Döschl (latein-lernen.com)",
+	"author": "Döschl (latein-lernen.com)",
+	"authorUrl": "https://latein-lernen.com",
+	"isDesktopOnly": true
+}

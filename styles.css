@@ -1,0 +1,151 @@
+/* ========================================================
+   Whisper Local — Plugin Styles
+   ======================================================== */
+
+/* ── About / Author ────────────────────────────────── */
+
+.whisper-local-about {
+	margin-bottom: var(--size-4-4);
+	padding: var(--size-4-4) var(--size-4-4);
+	border-radius: var(--radius-m);
+	background: linear-gradient(135deg, var(--interactive-accent) 0%, var(--text-accent) 100%);
+	color: rgba(255, 255, 255, 0.9);
+	font-size: var(--font-ui-small);
+}
+
+.whisper-local-about strong {
+	color: #fff;
+	font-size: var(--font-ui-large);
+	display: block;
+	margin-bottom: 4px;
+}
+
+.whisper-local-about a {
+	color: #fff;
+	text-decoration: underline;
+	font-weight: 600;
+}
+
+/* ── Plugin list author branding ────────────────────── */
+
+.whisper-local-author-branded {
+	margin: 4px 0 !important;
+}
+
+.whisper-local-author-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 12px;
+	background: linear-gradient(135deg, var(--interactive-accent), var(--text-accent));
+	color: #fff;
+	font-size: var(--font-ui-smaller);
+	font-weight: 500;
+}
+
+.whisper-local-author-badge strong {
+	font-weight: 700;
+}
+
+.whisper-local-author-link {
+	color: #fff !important;
+	text-decoration: underline;
+	font-weight: 600;
+}
+
+/* ── Ribbon icon states ─────────────────────────────── */
+
+.whisper-local-recording {
+	color: var(--text-error) !important;
+	animation: whisper-local-pulse 1s ease-in-out infinite;
+}
+
+.whisper-local-transcribing {
+	color: var(--text-accent) !important;
+	animation: whisper-local-fade 1.5s ease-in-out infinite;
+}
+
+@keyframes whisper-local-pulse {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.3; }
+}
+
+@keyframes whisper-local-fade {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.4; }
+}
+
+/* ── Settings: Status section ───────────────────────── */
+
+.whisper-local-status {
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	padding: var(--size-4-3);
+	margin-bottom: var(--size-4-4);
+	font-family: var(--font-monospace);
+	font-size: var(--font-smaller);
+	line-height: 1.8;
+}
+
+.whisper-local-status-line {
+	padding: 2px 0;
+}
+
+.whisper-local-status-ok {
+	color: var(--text-success, var(--interactive-success));
+}
+
+.whisper-local-status-err {
+	color: var(--text-error);
+}
+
+.whisper-local-status-warn {
+	color: var(--text-warning, var(--text-accent));
+}
+
+/* ── Settings: Test result ──────────────────────────── */
+
+.whisper-local-test-result {
+	margin: var(--size-4-2) 0;
+	padding: var(--size-4-3);
+	border-radius: var(--radius-s);
+	font-style: italic;
+	min-height: 1.5em;
+}
+
+.whisper-local-test-result:not(:empty) {
+	background: var(--background-secondary);
+}
+
+/* ── Voice bar (above chat input) ──────────────────── */
+
+.whisper-local-voice-bar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 8px;
+	margin-bottom: 2px;
+}
+
+.whisper-local-voice-bar-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 4px;
+	cursor: pointer;
+	color: var(--text-muted);
+	transition: color 0.15s ease, background 0.15s ease;
+}
+
+.whisper-local-voice-bar-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.whisper-local-voice-bar-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	user-select: none;
+}
+
