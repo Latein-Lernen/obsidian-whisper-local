@@ -19,6 +19,7 @@ import { WhisperLocalSettingsTab } from "./SettingsTab";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { WhisperTranscriber } from "./WhisperTranscriber";
 import { BinaryDetector } from "./BinaryDetector";
+import { AutoSetup } from "./AutoSetup";
 import { CSS_PREFIX } from "./constants";
 
 // ── Icons ────────────────────────────────────────────
@@ -69,6 +70,11 @@ export default class WhisperLocalPlugin extends Plugin {
 
 		if (!this.settings.setupComplete) {
 			this.runAutoDetection();
+		}
+
+		// If auto-detection didn't find everything, run auto-setup
+		if (AutoSetup.needsSetup(this.settings)) {
+			this.runAutoSetup();
 		}
 
 		this.initVoiceBarInjection();
@@ -537,6 +543,46 @@ export default class WhisperLocalPlugin extends Plugin {
 			this.settings.setupComplete = true;
 			await this.saveSettings();
 			this.transcriber = new WhisperTranscriber(this.settings);
+		}
+	}
+
+	// ── Auto-setup (build + download) ───────────────
+
+	private async runAutoSetup(): Promise<void> {
+		let notice: Notice | null = null;
+
+		try {
+			notice = new Notice(
+				"Döschl Whispert Local: Setting up voice recognition...",
+				0  // persistent until dismissed
+			);
+
+			this.settings = await AutoSetup.run(
+				this.settings,
+				(message: string) => {
+					console.log(`[Whisper Local] ${message}`);
+					if (notice) {
+						notice.setMessage(
+							`Döschl Whispert Local: ${message}`
+						);
+					}
+				}
+			);
+
+			await this.saveSettings();
+			this.transcriber = new WhisperTranscriber(this.settings);
+
+			if (notice) notice.hide();
+			new Notice("Döschl Whispert Local: Ready!");
+			console.log("[Whisper Local] Auto-setup complete.");
+		} catch (err) {
+			if (notice) notice.hide();
+			const msg = err instanceof Error ? err.message : String(err);
+			new Notice(
+				`Döschl Whispert Local: Setup failed — ${msg}. You can configure paths manually in Settings.`,
+				10000
+			);
+			console.error("[Whisper Local] Auto-setup failed:", err);
 		}
 	}
 

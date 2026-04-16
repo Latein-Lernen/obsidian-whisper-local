@@ -1,0 +1,172 @@
+name: Build whisper-cli binaries
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Linux x64 (CPU) ────────────────────────────────
+  linux-x64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc g++
+
+      - name: Clone whisper.cpp
+        run: git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git
+
+      - name: Build whisper-cli
+        run: |
+          cd whisper.cpp
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j$(nproc)
+
+      - name: Package
+        run: |
+          mkdir -p package
+          cp whisper.cpp/build/bin/whisper-cli package/
+          chmod +x package/whisper-cli
+          tar czf whisper-cli-linux-x64.tar.gz -C package whisper-cli
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-cli-linux-x64
+          path: whisper-cli-linux-x64.tar.gz
+
+  # ── Linux x64 (Vulkan) ─────────────────────────────
+  linux-x64-vulkan:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install build tools and Vulkan SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc g++ libvulkan-dev glslang-tools
+
+      - name: Clone whisper.cpp
+        run: git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git
+
+      - name: Build whisper-cli with Vulkan
+        run: |
+          cd whisper.cpp
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+          cmake --build build --config Release -j$(nproc)
+
+      - name: Package
+        run: |
+          mkdir -p package
+          cp whisper.cpp/build/bin/whisper-cli package/
+          chmod +x package/whisper-cli
+          tar czf whisper-cli-linux-x64-vulkan.tar.gz -C package whisper-cli
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-cli-linux-x64-vulkan
+          path: whisper-cli-linux-x64-vulkan.tar.gz
+
+  # ── macOS arm64 (Apple Silicon) ─────────────────────
+  darwin-arm64:
+    runs-on: macos-14
+    steps:
+      - name: Clone whisper.cpp
+        run: git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git
+
+      - name: Build whisper-cli
+        run: |
+          cd whisper.cpp
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j$(sysctl -n hw.logicalcpu)
+
+      - name: Package
+        run: |
+          mkdir -p package
+          cp whisper.cpp/build/bin/whisper-cli package/
+          chmod +x package/whisper-cli
+          tar czf whisper-cli-darwin-arm64.tar.gz -C package whisper-cli
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-cli-darwin-arm64
+          path: whisper-cli-darwin-arm64.tar.gz
+
+  # ── macOS x64 (Intel) ──────────────────────────────
+  darwin-x64:
+    runs-on: macos-13
+    steps:
+      - name: Clone whisper.cpp
+        run: git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git
+
+      - name: Build whisper-cli
+        run: |
+          cd whisper.cpp
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j$(sysctl -n hw.logicalcpu)
+
+      - name: Package
+        run: |
+          mkdir -p package
+          cp whisper.cpp/build/bin/whisper-cli package/
+          chmod +x package/whisper-cli
+          tar czf whisper-cli-darwin-x64.tar.gz -C package whisper-cli
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-cli-darwin-x64
+          path: whisper-cli-darwin-x64.tar.gz
+
+  # ── Windows x64 ────────────────────────────────────
+  win32-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Clone whisper.cpp
+        run: git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git
+
+      - name: Build whisper-cli
+        run: |
+          cd whisper.cpp
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package
+          Copy-Item whisper.cpp/build/bin/Release/whisper-cli.exe package/ -ErrorAction SilentlyContinue
+          if (-not (Test-Path package/whisper-cli.exe)) {
+            Copy-Item whisper.cpp/build/bin/whisper-cli.exe package/
+          }
+          Compress-Archive -Path package/whisper-cli.exe -DestinationPath whisper-cli-win32-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-cli-win32-x64
+          path: whisper-cli-win32-x64.zip
+
+  # ── Upload to release ──────────────────────────────
+  upload-release:
+    needs: [linux-x64, linux-x64-vulkan, darwin-arm64, darwin-x64, win32-x64]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/whisper-cli-linux-x64/whisper-cli-linux-x64.tar.gz
+            artifacts/whisper-cli-linux-x64-vulkan/whisper-cli-linux-x64-vulkan.tar.gz
+            artifacts/whisper-cli-darwin-arm64/whisper-cli-darwin-arm64.tar.gz
+            artifacts/whisper-cli-darwin-x64/whisper-cli-darwin-x64.tar.gz
+            artifacts/whisper-cli-win32-x64/whisper-cli-win32-x64.zip

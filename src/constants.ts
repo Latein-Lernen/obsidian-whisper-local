@@ -79,11 +79,21 @@ export const MODELS: {
 export const MODEL_DOWNLOAD_BASE =
 	"https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
 
+/** Auto-setup directories (relative to $HOME, Linux/Mac) */
+export const AUTO_SETUP_BASE_DIR = ".local/share/whisper-local";
+export const AUTO_SETUP_BIN_DIR = ".local/share/whisper-local/bin";
+export const AUTO_SETUP_MODEL_DIR = ".local/share/whisper-local/models";
+
 /**
  * Common locations where whisper-cli might be found on different systems.
  * Checked in order — first match wins.
+ * Relative paths are resolved from $HOME (Linux/Mac) or %APPDATA% (Windows).
  */
 export const WHISPER_SEARCH_PATHS = [
+	// Auto-setup directory — Linux/Mac (our own managed binary)
+	".local/share/whisper-local/bin/whisper-cli",
+	// Auto-setup directory — Windows (%APPDATA%)
+	// Resolved at runtime in BinaryDetector via getWindowsSearchPaths()
 	// NixOS user profile
 	".nix-profile/bin/whisper-cli",
 	// NixOS system profile (resolved at runtime with username)
@@ -97,14 +107,42 @@ export const WHISPER_SEARCH_PATHS = [
 ];
 
 /**
+ * Windows-specific search paths for whisper-cli.
+ * %APPDATA% is resolved at runtime.
+ */
+export function getWindowsSearchPaths(): string[] {
+	const appData = process.env.APPDATA;
+	if (!appData) return [];
+	const { join } = require("path");
+	return [
+		join(appData, "whisper-local", "bin", "whisper-cli.exe"),
+	];
+}
+
+/**
  * Common locations where whisper models might be stored.
  * Relative paths are resolved from $HOME.
  */
 export const MODEL_SEARCH_DIRS = [
+	// Auto-setup directory (our own managed models)
+	".local/share/whisper-local/models",
 	".local/share/whisper-cpp/models",
 	".cache/whisper",
 	"whisper-models",
 ];
+
+/**
+ * Windows-specific model search directories.
+ * %APPDATA% is resolved at runtime.
+ */
+export function getWindowsModelDirs(): string[] {
+	const appData = process.env.APPDATA;
+	if (!appData) return [];
+	const { join } = require("path");
+	return [
+		join(appData, "whisper-local", "models"),
+	];
+}
 
 /** Whisper expects 16kHz mono audio */
 export const WHISPER_SAMPLE_RATE = 16000;

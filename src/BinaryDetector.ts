@@ -10,7 +10,12 @@ import { execFile } from "child_process";
 import { join } from "path";
 import { homedir, userInfo } from "os";
 
-import { WHISPER_SEARCH_PATHS, MODEL_SEARCH_DIRS } from "./constants";
+import {
+	WHISPER_SEARCH_PATHS,
+	MODEL_SEARCH_DIRS,
+	getWindowsSearchPaths,
+	getWindowsModelDirs,
+} from "./constants";
 
 export class BinaryDetector {
 	/**
@@ -20,7 +25,14 @@ export class BinaryDetector {
 	static findWhisper(): string | null {
 		const home = homedir();
 
-		// 1. Check paths relative to $HOME
+		// 1. Windows-specific paths (%APPDATA%)
+		if (process.platform === "win32") {
+			for (const absPath of getWindowsSearchPaths()) {
+				if (existsSync(absPath)) return absPath;
+			}
+		}
+
+		// 2. Check paths relative to $HOME
 		for (const rel of WHISPER_SEARCH_PATHS) {
 			if (rel.startsWith("/")) {
 				// Absolute path
@@ -31,7 +43,7 @@ export class BinaryDetector {
 			}
 		}
 
-		// 2. NixOS: /etc/profiles/per-user/<username>/bin/whisper-cli
+		// 3. NixOS: /etc/profiles/per-user/<username>/bin/whisper-cli
 		try {
 			const username = userInfo().username;
 			const nixSystemPath = `/etc/profiles/per-user/${username}/bin/whisper-cli`;
@@ -40,8 +52,10 @@ export class BinaryDetector {
 			// userInfo() can fail in sandboxed environments
 		}
 
-		// 3. Fallback: use `which` to search PATH
-		return this.which("whisper-cli");
+		// 4. Fallback: use `which` (Linux/Mac) or `where` (Windows) to search PATH
+		const searchCmd = process.platform === "win32" ? "where" : "which";
+		const binaryName = process.platform === "win32" ? "whisper-cli.exe" : "whisper-cli";
+		return this.which(binaryName, searchCmd);
 	}
 
 	/**
@@ -54,7 +68,13 @@ export class BinaryDetector {
 		const found: { path: string; name: string; sizeMB: number }[] = [];
 		const seen = new Set<string>();
 
-		for (const dir of MODEL_SEARCH_DIRS) {
+		// Combine standard dirs with Windows-specific dirs
+		const allDirs = [
+			...MODEL_SEARCH_DIRS,
+			...(process.platform === "win32" ? getWindowsModelDirs() : []),
+		];
+
+		for (const dir of allDirs) {
 			const absDir = dir.startsWith("/") ? dir : join(home, dir);
 			if (!existsSync(absDir)) continue;
 
@@ -166,16 +186,18 @@ export class BinaryDetector {
 	}
 
 	/**
-	 * Simple `which` implementation using child_process.
+	 * Simple `which`/`where` implementation using child_process.
 	 */
-	private static which(binary: string): string | null {
+	private static which(binary: string, command = "which"): string | null {
 		try {
 			const { execFileSync } = require("child_process");
-			const result = execFileSync("which", [binary], {
+			const result = execFileSync(command, [binary], {
 				encoding: "utf8",
 				timeout: 3000,
 			}).trim();
-			return result || null;
+			// `where` on Windows may return multiple lines — take the first
+			const firstLine = result.split("\n")[0]?.trim();
+			return firstLine || null;
 		} catch {
 			return null;
 		}
